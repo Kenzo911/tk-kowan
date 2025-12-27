@@ -19,6 +19,10 @@ import {
   Heart,
   History,
   Flag,
+  Shield,
+  Sun,
+  Sunset,
+  Moon,
 } from 'lucide-react';
 
 // Types
@@ -28,6 +32,14 @@ interface Costs {
   food: string;
   activities: string;
   total: string;
+}
+
+interface Visa {
+  required: string;
+  type: string;
+  duration: string;
+  notes: string;
+  estimatedCost: string;
 }
 
 interface DaySchedule {
@@ -42,6 +54,7 @@ interface Itinerary {
   countryCode: string;
   cityName: string;
   history: string;
+  visa: Visa;
   costs: Costs;
   schedule: DaySchedule[];
 }
@@ -103,32 +116,66 @@ export default function Home() {
   const [days, setDays] = useState('');
   const [budget, setBudget] = useState('Moderate');
   const [interests, setInterests] = useState('');
+  const [startingCountry, setStartingCountry] = useState('');
 
   // UI state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<ApiResponse | null>(null);
+  const [showGlobe, setShowGlobe] = useState(false);
+
+  // API endpoint with fallback
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://54.173.238.248:5001';
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setShowGlobe(true);
     setError('');
     setResult(null);
 
+    const requestData = {
+      destination,
+      days: parseInt(days),
+      budget,
+      interests,
+      startingCountry,
+    };
+
     try {
+      // Try remote server first
       const response = await axios.post<ApiResponse>(
-        'http://localhost:5001/api/itinerary',
-        {
-          destination,
-          days: parseInt(days),
-          budget,
-          interests,
-        }
+        `${API_URL}/api/itinerary`,
+        requestData
       );
 
-      setResult(response.data);
+      // Keep globe visible for a moment before showing results
+      setTimeout(() => {
+        setShowGlobe(false);
+        setResult(response.data);
+      }, 2000);
     } catch (err: unknown) {
+      // If remote fails, try localhost fallback
+      if (axios.isAxiosError(err) && API_URL !== 'http://localhost:5001') {
+        try {
+          console.log('Remote server unavailable, trying localhost...');
+          const fallbackResponse = await axios.post<ApiResponse>(
+            'http://localhost:5001/api/itinerary',
+            requestData
+          );
+          setTimeout(() => {
+            setShowGlobe(false);
+            setResult(fallbackResponse.data);
+          }, 2000);
+          return;
+        } catch (fallbackErr) {
+          // Both failed, show error from original attempt
+        }
+      }
+
+      setShowGlobe(false);
+      // Handle errors
       if (axios.isAxiosError(err)) {
         setError(
           err.response?.data?.message ||
@@ -140,6 +187,19 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Helper function to get time-of-day icon
+  const getTimeIcon = (activity: string) => {
+    const lowerActivity = activity.toLowerCase();
+    if (lowerActivity.includes('morning') || lowerActivity.includes('breakfast')) {
+      return <Sun className="w-4 h-4 text-amber-400" />;
+    } else if (lowerActivity.includes('afternoon') || lowerActivity.includes('lunch') || lowerActivity.includes('midday')) {
+      return <Sunset className="w-4 h-4 text-orange-400" />;
+    } else if (lowerActivity.includes('evening') || lowerActivity.includes('night') || lowerActivity.includes('dinner')) {
+      return <Moon className="w-4 h-4 text-indigo-400" />;
+    }
+    return <ChevronRight className="w-4 h-4 text-purple-400" />;
   };
 
   // Cost card component
@@ -276,6 +336,21 @@ export default function Home() {
                   </div>
                 </div>
 
+                {/* Starting Country for Visa */}
+                <div>
+                  <label className="flex items-center gap-2 text-white text-sm font-medium mb-2">
+                    <Shield className="w-4 h-4 text-purple-400" />
+                    Your Country/Nationality (for visa info)
+                  </label>
+                  <input
+                    type="text"
+                    value={startingCountry}
+                    onChange={(e) => setStartingCountry(e.target.value)}
+                    placeholder="e.g., United States, United Kingdom, India"
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                  />
+                </div>
+
                 {/* Interests */}
                 <div>
                   <label className="flex items-center gap-2 text-white text-sm font-medium mb-2">
@@ -330,6 +405,137 @@ export default function Home() {
             </div>
           </motion.div>
         </section>
+
+        {/* Globe Zoom Animation */}
+        <AnimatePresence>
+          {showGlobe && (
+            <motion.section
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0, scale: 3 }}
+              transition={{ duration: 0.5 }}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/95"
+            >
+              <div className="text-center">
+                {/* Animated Globe Container */}
+                <motion.div
+                  initial={{ scale: 0.5, opacity: 0 }}
+                  animate={{ 
+                    scale: [0.5, 1, 1, 2.5],
+                    opacity: [0, 1, 1, 0],
+                  }}
+                  transition={{ 
+                    duration: 4,
+                    times: [0, 0.2, 0.7, 1],
+                    ease: "easeInOut"
+                  }}
+                  className="relative mx-auto mb-8"
+                >
+                  {/* Outer Glow Rings */}
+                  <motion.div
+                    animate={{ 
+                      scale: [1, 1.5, 1],
+                      opacity: [0.3, 0.1, 0.3]
+                    }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 blur-3xl"
+                    style={{ width: 300, height: 300, marginLeft: -150, marginTop: -150 }}
+                  />
+                  
+                  {/* Globe */}
+                  <motion.div
+                    animate={{ rotateY: 360 }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                    className="relative w-48 h-48 mx-auto"
+                    style={{ transformStyle: 'preserve-3d' }}
+                  >
+                    {/* Globe sphere with gradient */}
+                    <div className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-400 via-blue-600 to-blue-900 shadow-2xl overflow-hidden">
+                      {/* Continents overlay pattern */}
+                      <div 
+                        className="absolute inset-0 opacity-60"
+                        style={{
+                          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cellipse cx='30' cy='35' rx='15' ry='20' fill='%2322c55e'/%3E%3Cellipse cx='70' cy='30' rx='20' ry='25' fill='%2322c55e'/%3E%3Cellipse cx='50' cy='70' rx='12' ry='15' fill='%2322c55e'/%3E%3Cellipse cx='80' cy='60' rx='10' ry='18' fill='%2322c55e'/%3E%3C/svg%3E")`,
+                          backgroundSize: '100% 100%',
+                        }}
+                      />
+                      {/* Shine effect */}
+                      <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-white/40 rounded-full" />
+                    </div>
+                    
+                    {/* Orbit ring */}
+                    <motion.div
+                      animate={{ rotateX: 75, rotateZ: 360 }}
+                      transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                      className="absolute inset-[-20px] border-2 border-purple-400/50 rounded-full"
+                      style={{ transformStyle: 'preserve-3d' }}
+                    />
+                  </motion.div>
+                  
+                  {/* Destination Pin */}
+                  <motion.div
+                    initial={{ scale: 0, y: 20 }}
+                    animate={{ 
+                      scale: 1,
+                      y: 0
+                    }}
+                    transition={{ delay: 1.5, duration: 0.5, type: 'spring', stiffness: 300, damping: 15 }}
+                    className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
+                  >
+                    <motion.div
+                      animate={{ y: [0, -5, 0] }}
+                      transition={{ duration: 1, repeat: Infinity, ease: 'easeInOut' }}
+                    >
+                      <MapPin className="w-10 h-10 text-red-500 drop-shadow-lg" fill="#ef4444" />
+                    </motion.div>
+                  </motion.div>
+                </motion.div>
+                
+                {/* Text */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  <motion.p
+                    animate={{ opacity: [0.5, 1, 0.5] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                    className="text-2xl font-bold text-white mb-2"
+                  >
+                    ✈️ Flying to {destination}...
+                  </motion.p>
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 1 }}
+                    className="text-gray-400"
+                  >
+                    Crafting your perfect itinerary
+                  </motion.p>
+                  
+                  {/* Loading dots */}
+                  <div className="flex justify-center gap-2 mt-6">
+                    {[0, 1, 2].map((i) => (
+                      <motion.div
+                        key={i}
+                        animate={{ 
+                          scale: [1, 1.5, 1],
+                          opacity: [0.3, 1, 0.3]
+                        }}
+                        transition={{ 
+                          duration: 1,
+                          repeat: Infinity,
+                          delay: i * 0.2
+                        }}
+                        className="w-3 h-3 bg-purple-500 rounded-full"
+                      />
+                    ))}
+                  </div>
+                </motion.div>
+              </div>
+            </motion.section>
+          )}
+        </AnimatePresence>
 
         {/* Results Section */}
         <AnimatePresence>
@@ -434,6 +640,80 @@ export default function Home() {
                           <h3 className="text-xl font-bold text-white">A Glimpse into History</h3>
                         </div>
                         <p className="text-gray-300 leading-relaxed">{result.itinerary.history}</p>
+                      </div>
+                    </motion.div>
+                  </motion.div>
+                )}
+
+                {/* Visa Compliance Section */}
+                {result.itinerary.visa && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.75 }}
+                    className="mb-12"
+                  >
+                    <motion.div
+                      whileHover={{ scale: 1.02 }}
+                      className="bg-gradient-to-r from-emerald-500/20 via-teal-500/20 to-emerald-500/20 backdrop-blur-md border border-emerald-500/30 rounded-2xl p-6 relative overflow-hidden"
+                    >
+                      {/* Animated background */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 via-teal-500/5 to-emerald-500/5 animate-pulse" />
+                      
+                      <div className="relative z-10">
+                        <div className="flex items-center gap-3 mb-4">
+                          <motion.div
+                            animate={{ scale: [1, 1.1, 1] }}
+                            transition={{ duration: 2, repeat: Infinity }}
+                            className="p-2 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-xl"
+                          >
+                            <Shield className="w-5 h-5 text-white" />
+                          </motion.div>
+                          <h3 className="text-xl font-bold text-white">Visa Requirements</h3>
+                          <motion.span
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                              result.itinerary.visa.required.toLowerCase() === 'no'
+                                ? 'bg-green-500/30 text-green-300 border border-green-500/50'
+                                : result.itinerary.visa.required.toLowerCase() === 'yes'
+                                ? 'bg-red-500/30 text-red-300 border border-red-500/50'
+                                : 'bg-yellow-500/30 text-yellow-300 border border-yellow-500/50'
+                            }`}
+                          >
+                            {result.itinerary.visa.required.toLowerCase() === 'no' ? '✓ Visa-Free' : 
+                             result.itinerary.visa.required.toLowerCase() === 'yes' ? '⚠ Visa Required' : 
+                             '⚡ Conditional'}
+                          </motion.span>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                          <div className="bg-white/5 rounded-xl p-4">
+                            <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">Visa Type</p>
+                            <p className="text-white font-semibold">{result.itinerary.visa.type}</p>
+                          </div>
+                          <div className="bg-white/5 rounded-xl p-4">
+                            <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">Max Stay</p>
+                            <p className="text-white font-semibold">{result.itinerary.visa.duration}</p>
+                          </div>
+                          <div className="bg-white/5 rounded-xl p-4">
+                            <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">Visa Cost</p>
+                            <p className="text-white font-semibold">{result.itinerary.visa.estimatedCost}</p>
+                          </div>
+                          <div className="bg-white/5 rounded-xl p-4">
+                            <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">Status</p>
+                            <p className="text-white font-semibold">{result.itinerary.visa.required}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="bg-white/5 rounded-xl p-4">
+                          <p className="text-gray-400 text-xs uppercase tracking-wide mb-2">Important Notes</p>
+                          <p className="text-gray-300 leading-relaxed text-sm">{result.itinerary.visa.notes}</p>
+                        </div>
+                        
+                        <p className="text-gray-500 text-xs mt-4 italic">
+                          ⚠️ Visa requirements may change. Always verify with the official embassy or consulate before traveling.
+                        </p>
                       </div>
                     </motion.div>
                   </motion.div>
@@ -562,10 +842,13 @@ export default function Home() {
                                     }}
                                   >
                                     <motion.div
-                                      initial={{ rotate: 0 }}
-                                      whileHover={{ rotate: 90, scale: 1.2 }}
+                                      initial={{ scale: 0, rotate: -180 }}
+                                      animate={{ scale: 1, rotate: 0 }}
+                                      transition={{ delay: actIndex * 0.1, type: 'spring' }}
+                                      whileHover={{ scale: 1.3, rotate: 20 }}
+                                      className="mt-0.5"
                                     >
-                                      <ChevronRight className="w-4 h-4 text-purple-400 flex-shrink-0 mt-0.5" />
+                                      {getTimeIcon(activity)}
                                     </motion.div>
                                     <span>{activity}</span>
                                   </li>

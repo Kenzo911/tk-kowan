@@ -35,7 +35,7 @@ app.get('/api/health', (req, res) => {
 // Main itinerary generation endpoint
 app.post('/api/itinerary', async (req, res) => {
   try {
-    const { destination, days, budget, interests } = req.body;
+    const { destination, days, budget, interests, startingCountry } = req.body;
 
     // Validate required fields
     if (!destination || !days || !budget) {
@@ -62,6 +62,13 @@ JSON SCHEMA (follow this exactly):
   "cityName": "The main city name without country (e.g., Tokyo, Paris, Rome)",
   "history": "A fascinating 2-3 sentence brief history of this destination highlighting its most interesting historical facts",
   "currency": "Local Currency Code (e.g., EUR, JPY, USD)",
+  "visa": {
+    "required": "Yes/No/Conditional",
+    "type": "Type of visa needed (e.g., Tourist Visa, eVisa, Visa on Arrival, Visa-Free)",
+    "duration": "Maximum allowed stay (e.g., 30 days, 90 days)",
+    "notes": "Important visa notes and requirements (e.g., passport validity, proof of funds, return ticket)",
+    "estimatedCost": "Visa fee if applicable (e.g., $50, Free, N/A)"
+  },
   "costs": {
     "flights": "Estimated round-trip flight cost range (e.g., $800-$1200)",
     "accommodation": "Total accommodation cost for all nights (e.g., $600-$900)",
@@ -86,9 +93,11 @@ JSON SCHEMA (follow this exactly):
     const userPrompt = `Create a ${days}-day travel itinerary for ${destination}.
 
 Budget Level: ${budget}
+${startingCountry ? `Traveler's Country of Origin: ${startingCountry}` : 'Traveler\'s Country of Origin: United States'}
 ${interests ? `Traveler Interests: ${interests}` : 'General sightseeing and cultural experiences'}
 
-Provide realistic cost estimates and detailed daily activities. Include must-see attractions, local food recommendations, and hidden gems.`;
+Provide realistic cost estimates and detailed daily activities. Include must-see attractions, local food recommendations, and hidden gems.
+IMPORTANT: Include accurate visa requirements for a citizen of ${startingCountry || 'United States'} traveling to ${destination}.`;
 
     // Call OpenAI API
     const completion = await openai.chat.completions.create({

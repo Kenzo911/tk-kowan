@@ -2,6 +2,7 @@
 /backend/.env
 /backend/.env.local
 
+/frontend/.env.local
 # Common ignores
 node_modules/
 .env

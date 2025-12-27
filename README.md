@@ -10,18 +10,24 @@ An AI-powered travel itinerary generator that creates personalized trip plans wi
 - **Cost Estimates**: Get realistic budget breakdowns for flights, accommodation, food, and activities
 - **🏳️ Country Flags**: Automatically displays the destination country's flag with smooth animations
 - **📜 City History**: Learn fascinating historical facts about your destination
+- **🛂 Visa Compliance**: Get personalized visa requirements based on your nationality
+- **🌍 Globe Zoom Animation**: Interactive 3D globe animation that zooms to your destination
+- **☀️🌅🌙 Time-of-Day Icons**: Activities display contextual icons for morning, afternoon, and evening
 - **Beautiful UI**: Modern glassmorphism design with stunning animations
-- **Customizable**: Adjust destination, duration, budget level, and personal interests
+- **Customizable**: Adjust destination, duration, budget level, personal interests, and nationality
 
 ## 🎬 Animation Highlights
 
 | Element | Animation |
 |---------|-----------|
+| Globe Zoom | 3D spinning globe with orbit ring, zooms to destination pin |
 | Country Flag | Floating effect + spring scale-in with rotation |
+| Time Icons | ☀️ Morning / 🌅 Afternoon / 🌙 Evening with spring pop-in |
 | Cost Cards | Hover lift with scale, rotating icons |
 | Day Markers | Spring pop-in, subtle pulse effect |
 | Timeline Cards | Lift and glow on hover |
 | History Section | Gradient background with pulsing glow |
+| Visa Section | Emerald gradient card with scale badge, pulsing icon |
 | Buttons | Wiggling sparkle emoji, hover glow effects |
 
 ## 🛠️ Tech Stack
@@ -101,8 +107,11 @@ PORT=5001
 
 - **Dark Theme**: Stunning Earth/map background with gradient overlay
 - **Glassmorphism**: Translucent input card with backdrop blur
+- **Globe Zoom Transition**: 3D animated globe that spins and zooms when generating itinerary
 - **Country Flag Display**: Shows destination flag via flagcdn.com
 - **History Card**: Animated gradient card with destination history
+- **Visa Compliance Card**: Emerald-themed card with color-coded status badges and detailed visa requirements
+- **Time-of-Day Icons**: Morning (☀️), Afternoon (🌅), Evening (🌙) icons for activities
 - **Cost Grid**: 5 animated cards showing budget breakdown
 - **Timeline**: Alternating day-by-day itinerary with vertical line
 - **Smooth Animations**: Powered by Framer Motion throughout
@@ -117,7 +126,8 @@ PORT=5001
   "destination": "Tokyo, Japan",
   "days": 7,
   "budget": "Moderate",
-  "interests": "food, culture, anime"
+  "interests": "food, culture, anime",
+  "startingCountry": "United States"
 }
 ```
 
@@ -134,6 +144,13 @@ PORT=5001
     "cityName": "Tokyo",
     "history": "Tokyo, formerly known as Edo, became Japan's political center in 1603 when Tokugawa Ieyasu established his shogunate here. The city was renamed Tokyo ('Eastern Capital') in 1868 when it became the imperial capital.",
     "currency": "JPY",
+    "visa": {
+      "required": "No",
+      "type": "Visa-Free",
+      "duration": "90 days",
+      "notes": "US citizens can stay visa-free for tourism/business up to 90 days. Passport must be valid for duration of stay. Proof of onward/return ticket may be required.",
+      "estimatedCost": "Free"
+    },
     "costs": {
       "flights": "$800-$1200",
       "accommodation": "$700-$1000",
